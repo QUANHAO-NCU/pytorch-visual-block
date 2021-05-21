@@ -1,0 +1,12 @@
+*.pth
+*.docx
+*.txt
+__pycache__
+.idea
+cifar
+*.tar
+*.gz
+*.zip
+*.csv
+*.7z
+*.rar
