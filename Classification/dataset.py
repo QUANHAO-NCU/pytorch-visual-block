@@ -32,8 +32,10 @@ class dataset(Dataset):
             self.images = self.images[int(train * len(self.images)):int((train + val) * len(self.images))]
             self.labels = self.labels[int(train * len(self.labels)):int((train + val) * len(self.labels))]
         else:  # mode == 'test'
-            self.images = self.images[int((1 - (train + val)) * len(self.images)):]
-            self.labels = self.labels[int((1 - (train + val)) * len(self.labels)):]
+            test_proportion = (1 - test)*len(self.images)
+            test_proportion = int(test_proportion)
+            self.images = self.images[test_proportion:]
+            self.labels = self.labels[test_proportion:]
 
     def __len__(self):
         return len(self.images)
@@ -57,7 +59,6 @@ class dataset(Dataset):
         img_label = {}
         for index, img_path in enumerate(self.images):
             img_label[img_path] = self.labels[index]
-
         random.shuffle(self.images)
         match_label = []
         for img_path in self.images:
@@ -65,19 +66,20 @@ class dataset(Dataset):
         self.labels = match_label
 
     def load_csv(self, filename):
-        images = []
-        for name in self.name2label:
-            images += glob.glob(os.path.join(self.path, name, '*.png'))
-            images += glob.glob(os.path.join(self.path, name, '*.jpg'))
-            images += glob.glob(os.path.join(self.path, name, '*.jpeg'))
-        random.shuffle(images)
-        with open(os.path.join(self.path, filename), mode='w', newline='') as f:
-            writer = csv.writer(f)
-            for img_path in images:
-                name = img_path.split(os.sep)[-2]
-                label = self.name2label[name]
-                writer.writerow([img_path, label])
-            print('writen into csv file:', filename)
+        if not os.path.exists(filename):
+            images = []
+            for name in self.name2label:
+                images += glob.glob(os.path.join(self.path, name, '*.png'))
+                images += glob.glob(os.path.join(self.path, name, '*.jpg'))
+                images += glob.glob(os.path.join(self.path, name, '*.jpeg'))
+            random.shuffle(images)
+            with open(os.path.join(self.path, filename), mode='w', newline='') as f:
+                writer = csv.writer(f)
+                for img_path in images:
+                    name = img_path.split(os.sep)[-2]
+                    label = self.name2label[name]
+                    writer.writerow([img_path, label])
+                print('writen into csv file:', filename)
         # read from csv file
 
         images, labels = [], []
@@ -91,7 +93,6 @@ class dataset(Dataset):
         assert len(images) == len(labels)
         return images, labels
 
-
     def denormalize(self, x_hat):
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -99,7 +100,6 @@ class dataset(Dataset):
         std = torch.tensor(std).unsqueeze(1).unsqueeze(1)
         x = x_hat * std + mean
         return x
-
 
     def get_item_with_path(self, path):
         tf = transforms.Compose([

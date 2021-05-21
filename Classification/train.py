@@ -1,12 +1,20 @@
+import os
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
-import visdom
+try:
+    import visdom
+except ModuleNotFoundError:
+    pass
 from torch import optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+# 在colab下运行时取消这些注释
+# 增加你代码所在的路径
+# import sys
 
+# sys.path.append('/content/drive/MyDrive/Classification')
 from dataset import dataset
 from model.GoogLeNet import *
 from model.LeNet import *
@@ -29,10 +37,10 @@ def evaluate(model, loader, mode='val'):
     # 权重不会更新
     model.eval()
     correct = 0
-    total = len(loader.dataset)
+    total = len(loader)
     step = 0
-    count = int(total / loader.batch_size)
-    with tqdm(total=count, desc=f'{mode} iteration :{count} ', postfix=dict,
+    count = int(total)
+    with tqdm(total=total, desc=f'{mode} iteration :{count} ', postfix=dict,
               mininterval=0.5) as val_dataset:
         for image, label in loader:
             image, label = image.to(device), label.to(device)
@@ -107,15 +115,16 @@ def train(model, model_name, dataset_path, epochs=100, batch_size=32, learning_r
         print('val acc:%.4f' % val_acc)
         if use_visdom:
             viz.line([val_acc], [global_step], win='val_acc', update='append')
-            # 保存网络状态
-        if isinstance(model_name, nn.Module):
-            model_name = 'unsetModelName'
-        torch.save(model.state_dict(),
-                   f'{model_name}-Epoch_{epoch + 1}-loss{round(count_loss / step + 1, 4)}-val acc_{round(val_acc, 4)}.pth')
+        # 保存网络状态
         if val_acc > best_acc:
             best_acc = val_acc
+            if os.path.exists(best_weights):
+                # 删除之前保存的权值文件
+                os.remove(best_weights)
+            torch.save(model.state_dict(),
+                       f'{model_name}-Epoch_{epoch + 1}-loss{round(count_loss / step + 1, 4)}-val acc_{round(val_acc, 4)}.pth')
             best_weights = f'{model_name}-Epoch_{epoch + 1}-loss{round(count_loss / step + 1, 4)}-val acc_{round(val_acc, 4)}.pth'
-        print(f'save Epoch_{epoch + 1}-loss{round(count_loss / step + 1, 4)}-val acc_{round(val_acc, 4)}.pth')
+            print(f'save Epoch_{epoch + 1}-loss{round(count_loss / step + 1, 4)}-val acc_{round(val_acc, 4)}.pth')
     # 测试模型
     model.load_state_dict(torch.load(best_weights))
     print('loaded from check point!')
@@ -208,5 +217,5 @@ if __name__ == '__main__':
     model_name = [[LeNet, 'LeNet'], [GoogLeNet, 'GoogLeNet'], [VGG16, 'VGG16'], [ResNet18, 'ResNet18'],
                   [ResNet50, 'ResNet50']]
     for item in model_name:
-        train(item[0], item[1], 'D:\Code\machineLearning\pyTorch\Dataset\classification\PetImages', epochs=100)
+        train(item[0], item[1], 'D:\Code\machineLearning\pyTorch\Dataset\classification\Dogs Cats Kaggle-25k', epochs=2)
     draw('logs.txt')
