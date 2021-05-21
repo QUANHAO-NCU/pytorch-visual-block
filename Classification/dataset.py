@@ -3,7 +3,6 @@ import glob
 import os
 import random
 
-
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -66,22 +65,21 @@ class dataset(Dataset):
         self.labels = match_label
 
     def load_csv(self, filename):
-        if not os.path.exists(os.path.join(self.path, filename)):
-            images = []
-            for name in self.name2label:
-                images += glob.glob(os.path.join(self.path, name, '*.png'))
-                images += glob.glob(os.path.join(self.path, name, '*.jpg'))
-                images += glob.glob(os.path.join(self.path, name, '*.jpeg'))
-
-            random.shuffle(images)
-            with open(os.path.join(self.path, filename), mode='w', newline='') as f:
-                writer = csv.writer(f)
-                for img_path in images:
-                    name = img_path.split(os.sep)[-2]
-                    label = self.name2label[name]
-                    writer.writerow([img_path, label])
-                print('writen into csv file:', filename)
+        images = []
+        for name in self.name2label:
+            images += glob.glob(os.path.join(self.path, name, '*.png'))
+            images += glob.glob(os.path.join(self.path, name, '*.jpg'))
+            images += glob.glob(os.path.join(self.path, name, '*.jpeg'))
+        random.shuffle(images)
+        with open(os.path.join(self.path, filename), mode='w', newline='') as f:
+            writer = csv.writer(f)
+            for img_path in images:
+                name = img_path.split(os.sep)[-2]
+                label = self.name2label[name]
+                writer.writerow([img_path, label])
+            print('writen into csv file:', filename)
         # read from csv file
+
         images, labels = [], []
         with open(os.path.join(self.path, filename)) as f:
             reader = csv.reader(f)
@@ -93,6 +91,7 @@ class dataset(Dataset):
         assert len(images) == len(labels)
         return images, labels
 
+
     def denormalize(self, x_hat):
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
@@ -100,6 +99,7 @@ class dataset(Dataset):
         std = torch.tensor(std).unsqueeze(1).unsqueeze(1)
         x = x_hat * std + mean
         return x
+
 
     def get_item_with_path(self, path):
         tf = transforms.Compose([
