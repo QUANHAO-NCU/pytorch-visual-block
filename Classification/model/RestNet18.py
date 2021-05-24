@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 
@@ -58,3 +59,12 @@ class ResNet18(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.out(x)
         return x
+
+
+if __name__ == '__main__':
+    device = torch.device('cuda:0')
+    model = ResNet18(5)
+    model.training = False
+    a = torch.randn((1, 3, 224, 224))
+    b = model(a)
+    print(b.shape)

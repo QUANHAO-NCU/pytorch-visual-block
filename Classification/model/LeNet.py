@@ -34,4 +34,4 @@ if __name__ == '__main__':
     model = LeNet(2)
     a = torch.randn((1, 3, 224, 224))
     b = model(a)
-    print(a.shape)
+    print(b.shape)

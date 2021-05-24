@@ -73,15 +73,17 @@ class BasicConv2d(nn.Module):
 
 
 class GoogLeNet(nn.Module):
+    # TODO 这份代码与原论文相比，缺失了局部响应归一化层 nn.LocalResponseNorm
     def __init__(self, num_classes=1000, aux_logits=True, init_weights=False):
         super(GoogLeNet, self).__init__()
         self.aux_logits = aux_logits
 
         self.conv1 = BasicConv2d(3, 64, kernel_size=7, stride=2, padding=3)
         self.maxpool1 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
-
+        #  nn.LocalResponseNorm
         self.conv2 = BasicConv2d(64, 64, kernel_size=1)
         self.conv3 = BasicConv2d(64, 192, kernel_size=3, padding=1)
+        #  nn.LocalResponseNorm
         self.maxpool2 = nn.MaxPool2d(3, stride=2, ceil_mode=True)
 
         self.inception3a = Inception(192, 64, 96, 128, 16, 32, 32)
@@ -178,4 +180,4 @@ if __name__ == '__main__':
     model.training = False
     a = torch.randn((1, 3, 224, 224))
     b = model(a)
-    print(a.shape)
+    print(b.shape)

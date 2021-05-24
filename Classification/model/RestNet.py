@@ -190,3 +190,10 @@ def resnext101_32x8d(num_classes=1000, include_top=True):
                   include_top=include_top,
                   groups=groups,
                   width_per_group=width_per_group)
+if __name__ == '__main__':
+    device = torch.device('cuda:0')
+    model = resnet34(num_classes=5)
+    model.training = False
+    a = torch.randn((1, 3, 224, 224))
+    b = model(a)
+    print(b.shape)

@@ -3,6 +3,7 @@ import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
+
 try:
     import visdom
 except ModuleNotFoundError:
@@ -47,10 +48,10 @@ def evaluate(model, loader, mode='val'):
             with torch.no_grad():
                 logics = model(image)
                 predict = logics.argmax(dim=1)
-            correct += torch.eq(predict, label).sum().float().item()
+            correct += torch.eq(predict, label).float().sum().item()
             step += 1
             val_dataset.update(1)
-    return correct / total
+    return correct / (total * loader.batch_size)
 
 
 def train(model, model_name, dataset_path, epochs=100, batch_size=32, learning_rate=1e-3, use_visdom=False):
@@ -161,22 +162,22 @@ def draw(log_path):
 
         ax_train_loss.set_xlabel('iter', font)
         ax_train_loss.set_ylabel('train_loss', font)
-        ax_train_loss.set_title('Train Loss', font=font)
+        ax_train_loss.set_title('Train Loss', font)
 
         ax_val_loss.set_xlabel('iter', font)
         ax_val_loss.set_ylabel('val_loss', font)
-        ax_val_loss.set_title('Val Loss', font=font)
+        ax_val_loss.set_title('Val Loss', font)
 
         ax_test_acc.set_xlabel('model', font)
         ax_test_acc.set_ylabel('test_acc', font)
-        ax_test_acc.set_title('Test Accuracy', font=font)
+        ax_test_acc.set_title('Test Accuracy', font)
 
         ax_parameter.set_xlabel('model', font)
         ax_parameter.set_ylabel('model_parameter', font)
-        ax_parameter.set_title('Model parameter', font=font)
+        ax_parameter.set_title('Model parameter', font)
 
         model_names = []
-        color = ['r', 'g', 'b', 'y', 'p']
+        color = ['r', 'g', 'b', 'y', 'c', 'k', 'm']
         test_accs = []
         parameters = []
         for item in content:
@@ -217,5 +218,6 @@ if __name__ == '__main__':
     model_name = [[LeNet, 'LeNet'], [GoogLeNet, 'GoogLeNet'], [VGG16, 'VGG16'], [ResNet18, 'ResNet18'],
                   [ResNet50, 'ResNet50']]
     for item in model_name:
-        train(item[0], item[1], 'D:\Code\machineLearning\pyTorch\Dataset\classification\Dogs Cats Kaggle-25k', epochs=2)
+        train(item[0], item[1], 'D:\Code\machineLearning\pyTorch\Dataset\classification\DogsCatsKaggle-25k',
+              epochs=10)
     draw('logs.txt')

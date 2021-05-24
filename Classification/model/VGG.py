@@ -1,5 +1,5 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 
 class VGG(nn.Module):
@@ -8,7 +8,7 @@ class VGG(nn.Module):
         self.features = features
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5),
-            nn.Linear(512*7*7, 2048),
+            nn.Linear(512 * 7 * 7, 2048),
             nn.ReLU(True),
             nn.Dropout(p=0.5),
             nn.Linear(2048, 2048),
@@ -69,3 +69,12 @@ def vgg(model_name="vgg16", **kwargs):
         return
     model = VGG(make_features(cfg), **kwargs)
     return model
+
+
+if __name__ == '__main__':
+    device = torch.device('cuda:0')
+    model = vgg("vgg16", num_classes=5)
+    model.training = False
+    a = torch.randn((1, 3, 224, 224))
+    b = model(a)
+    print(b.shape)
