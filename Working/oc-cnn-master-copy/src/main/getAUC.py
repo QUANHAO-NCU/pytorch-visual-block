@@ -11,11 +11,10 @@ score_path = '../../temp_files/scores.mat'
 label_path = '../../temp_files/labels.mat'
 
 with h5py.File(score_path, 'r') as f:
-	test_features = f['scores'][()]
+    test_features = f['scores'][()]
 with h5py.File(label_path, 'r') as f:
-	test_label = f['test_label'][()]
+    test_label = f['test_label'][()]
 
 fpr, tpr, thresholds = metrics.roc_curve(np.transpose(test_label), np.transpose(test_features))
 
-print (metrics.auc(fpr, tpr))
-
+print(metrics.auc(fpr, tpr))

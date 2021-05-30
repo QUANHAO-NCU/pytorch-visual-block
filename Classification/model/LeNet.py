@@ -6,6 +6,7 @@ import torch.nn.functional as F
 class LeNet(nn.Module):
     def __init__(self, num_classes=10):
         super(LeNet, self).__init__()
+        #  [bz,w,h,ch]
         #  原网络应用于图像大小为28*28的，现在调整为224*224 ，对应ImageNet挑战赛的规格
         self.conv1 = nn.Conv2d(3, 16, kernel_size=5)
         self.pool1 = nn.MaxPool2d(2, 2)

@@ -35,7 +35,7 @@ import cPickle as cp
 # import matplotlib.pyplot as plt
 
 from subprocess import call
-from termcolor import cprint
+
 
 
 import visdom
@@ -92,8 +92,8 @@ def load_dataset(dataset, class_number, mean, std, hyper_para):
 
 	if(dataset=='abnormal'):
 		# change path files according to path on your device
-		# normal_data_path = '/home/labuser/Desktop/research/datasets/anomaly/normal/mat/raw/anomaly_normal_data_'+str(class_number)+'.mat'
-		# abnormal_data_path = '/home/labuser/Desktop/research/datasets/anomaly/abnormal/mat/raw/anomaly_abnormal_data_'+str(class_number)+'.mat'
+		normal_data_path = '/home/labuser/Desktop/research/datasets/anomaly/normal/mat/raw/anomaly_normal_data_'+str(class_number)+'.mat'
+		abnormal_data_path = '/home/labuser/Desktop/research/datasets/anomaly/abnormal/mat/raw/anomaly_abnormal_data_'+str(class_number)+'.mat'
 
 		with h5py.File(normal_data_path, 'r') as f:
 			normal_data = f['trainData'][()]
@@ -135,7 +135,7 @@ def load_dataset(dataset, class_number, mean, std, hyper_para):
 	
 	elif(dataset=='founder'):	
 		# change path files according to path on your device
-		# folder_path = '/home/labuser/Desktop/research/datasets/FounderType-200/og/'
+		folder_path = '/home/labuser/Desktop/research/datasets/FounderType-200/og/'
 		
 		test_data_path = folder_path+'test_data_char_'+str(class_number)+'.mat'
 		train_data_path = folder_path+'train_data_char_'+str(class_number)+'.mat'
@@ -196,7 +196,7 @@ def load_dataset(dataset, class_number, mean, std, hyper_para):
 
 	elif(dataset=='umdface02'):
 		# change path files according to path on your device
-		# folder_path = '/home/labuser/Desktop/research/datasets/UMDAA-02/'
+		folder_path = '/home/labuser/Desktop/research/datasets/UMDAA-02/'
 		
 		test_data_path = folder_path+'test_data_user_'+str(class_number)+'.mat'
 		train_data_path = folder_path+'train_data_user_'+str(class_number)+'.mat'
@@ -336,7 +336,7 @@ def choose_classifier(dataset, class_number, model_type, model, classifier, D, h
 	if(hyper_para.classifier_type=='OC_CNN'):
 		test_scores   = torch.from_numpy(test_scores)
 		k=0
-		print np.shape(test_features)
+		print (np.shape(test_features))
 		start = time.time()
 		for j in range(no_test_data):
 			temp = model(AddNoise(torch.autograd.Variable(test_data[j:(j+1)].cuda().contiguous().float()), hyper_para.sigma1)).float()

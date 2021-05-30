@@ -22,7 +22,7 @@ def denormalize(x_hat):
 warnings.filterwarnings("ignore")
 
 device = torch.device('cuda:0')
-weights_path = 'RestNet18-Epoch_50-loss1.0383-val acc_0.8712.pth'
+weights_path = 'ResNet18-Epoch_10-loss1.358-val acc_0.8232.pth'
 model = ResNet18(5).to(device)
 print('load weights...')
 model.load_state_dict(torch.load(weights_path))

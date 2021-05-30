@@ -22,7 +22,7 @@ from model.LeNet import *
 from model.RestNet import *
 from model.RestNet18 import *
 from model.VGG import *
-
+from model.Q import *
 warnings.filterwarnings("ignore")
 """
 根据自己显卡的显存调整batch_size
@@ -67,6 +67,7 @@ def train(model, model_name, dataset_path, epochs=100, batch_size=32, learning_r
     test_loader = DataLoader(test_db, batch_size=batch_size, shuffle=True, num_workers=4)
     # 设置优化器，损失函数
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
     loss_function = nn.CrossEntropyLoss().to(device)
     # 记录信息
     iteration = []
@@ -165,8 +166,8 @@ def draw(log_path):
         ax_train_loss.set_title('Train Loss', font)
 
         ax_val_loss.set_xlabel('iter', font)
-        ax_val_loss.set_ylabel('val_loss', font)
-        ax_val_loss.set_title('Val Loss', font)
+        ax_val_loss.set_ylabel('val_acc', font)
+        ax_val_loss.set_title('Val Accuracy', font)
 
         ax_test_acc.set_xlabel('model', font)
         ax_test_acc.set_ylabel('test_acc', font)
@@ -206,18 +207,21 @@ def draw(log_path):
 
 
 if __name__ == '__main__':
-    with open('logs.txt', mode='w+') as f:
-        f.truncate(0)
-    num_classes = 2
-    device = torch.device('cuda:0')
-    LeNet = LeNet(num_classes).to(device)
-    GoogLeNet = GoogLeNet(num_classes, aux_logits=False).to(device)  # 这样子训练GooLeNet不会达到最好的状态
-    VGG16 = vgg(model_name='vgg16', num_classes=num_classes).to(device)
-    ResNet18 = ResNet18(num_classes).to(device)
-    ResNet50 = resnet50(num_classes=num_classes).to(device)
-    model_name = [[LeNet, 'LeNet'], [GoogLeNet, 'GoogLeNet'], [VGG16, 'VGG16'], [ResNet18, 'ResNet18'],
-                  [ResNet50, 'ResNet50']]
-    for item in model_name:
-        train(item[0], item[1], 'D:\Code\machineLearning\pyTorch\Dataset\classification\DogsCatsKaggle-25k',
-              epochs=10)
+    # with open('logs.txt', mode='w+') as f:
+    #     f.truncate(0)
+    # num_classes = 2
+    # device = torch.device('cuda:0')
+    # LeNet = LeNet(num_classes).to(device)
+    # GoogLeNet = GoogLeNet(num_classes, aux_logits=False).to(device)  # 这样子训练GooLeNet不会达到最好的状态
+    # VGG16 = vgg(model_name='vgg16', num_classes=num_classes).to(device)
+    # ResNet18 = ResNet18(num_classes).to(device)
+    # ResNet50 = resnet50(num_classes=num_classes).to(device)
+    # model_name = [[LeNet, 'LeNet'], [GoogLeNet, 'GoogLeNet'], [VGG16, 'VGG16'], [ResNet18, 'ResNet18'],
+    #               [ResNet50, 'ResNet50']]
+    # for item in model_name:
+    #     train(item[0], item[1], 'D:\Code\machineLearning\pyTorch\Dataset\classification\DogsCatsKaggle-25k',
+    #           epochs=10)
+    # model = Q(5).to(torch.device('cuda:0'))
+    # train(model, 'Q', 'D:\Code\machineLearning\pyTorch\Dataset\classification\DogsCatsKaggle-25k',
+    #                 epochs=10)
     draw('logs.txt')

@@ -17,7 +17,7 @@ import torch.optim
 import torch.utils.data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-
+from light_cnn import *
 import numpy as np
 
 # from light_cnn import LightCNN_9Layers, LightCNN_29Layers, LightCNN_29Layers_v2
