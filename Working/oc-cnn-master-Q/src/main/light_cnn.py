@@ -173,6 +173,7 @@ def LightCNN_9Layers(**kwargs):
 
 def LightCNN_29Layers(**kwargs):
     model = network_29layers(resblock, [1, 2, 3, 4], **kwargs)
+
     return model
 
 def LightCNN_29Layers_v2(**kwargs):
