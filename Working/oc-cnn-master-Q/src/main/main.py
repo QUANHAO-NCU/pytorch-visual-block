@@ -36,33 +36,33 @@ def str2float(frac_str):
 
 
 ### Parse the argument
-dataset = args.dataset
-model_type = args.model_type
-class_number = args.class_number
+dataset = mainArgs.dataset
+model_type = mainArgs.model_type
+class_number = mainArgs.class_number
 
 ### import parameters for respective datasets
 # TODO 使用字体库
 hyper_para = FounderHyperParameters()
 
-if not args.default:
-    hyper_para.lr = args.lr
-    hyper_para.gpu_flag = args.gpu_flag
-    hyper_para.iterations = args.iterations
-    hyper_para.method = args.method
-    hyper_para.verbose = args.verbose
-    hyper_para.sigma = float(args.sigma)
-    hyper_para.pre_trained_flag = args.pre_trained_flag
-    hyper_para.N = args.N
-    hyper_para.gamma = float(args.gamma)
+if not mainArgs.default:
+    hyper_para.lr = mainArgs.lr
+    hyper_para.gpu_flag = mainArgs.gpu_flag
+    hyper_para.iterations = mainArgs.iterations
+    hyper_para.method = mainArgs.method
+    hyper_para.verbose = mainArgs.verbose
+    hyper_para.sigma = float(mainArgs.sigma)
+    hyper_para.pre_trained_flag = mainArgs.pre_trained_flag
+    hyper_para.N = mainArgs.N
+    hyper_para.gamma = float(mainArgs.gamma)
     hyper_para.model_type = model_type
-    hyper_para.classifier_type = args.classifier_type
-    hyper_para.batch_size = args.batch_size
+    hyper_para.classifier_type = mainArgs.classifier_type
+    hyper_para.batch_size = mainArgs.batch_size
 
 auc = 0.0
 
-if args.model_mode == 'train':
+if mainArgs.model_mode == 'train':
     auc = choose_method(dataset, model_type, class_number, hyper_para)
-elif args.model_mode == 'eval':
+elif mainArgs.model_mode == 'eval':
     print('work under progress')
     # auc = choose_models(dataset, model_type, class_number, hyper_para)
 

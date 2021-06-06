@@ -17,7 +17,7 @@ import scipy.io
 from scipy import misc
 from sklearn import svm
 from sklearn import metrics
-from sklearn.externals import joblib
+import joblib
 from sklearn.metrics import accuracy_score
 
 
@@ -31,7 +31,7 @@ import random
 import argparse
 
 import numpy as np
-import cPickle as cp
+import pickle as cp
 # import matplotlib.pyplot as plt
 
 from subprocess import call

@@ -1,4 +1,4 @@
-### importing all the important libraries
+# importing all the important libraries
 import torch
 import torchvision
 
@@ -34,12 +34,16 @@ import matplotlib.pyplot as plt
 from subprocess import call
 
 import visdom
-
+from Config import *
 from classifier import *
 from light_cnn import *
 
 
-### frequently used variables
+# 常用变量
+"""
+图片添加高斯噪声
+代码里移到transforms部分执行
+"""
 def AddNoise(inputs, sigma):
     noise_shape = np.shape(inputs)
 
@@ -47,7 +51,7 @@ def AddNoise(inputs, sigma):
     noise = torch.from_numpy(noise)
     noise = torch.autograd.Variable(noise).float()
 
-    if (inputs.is_cuda):
+    if inputs.is_cuda:
         outputs = inputs + noise.cuda()
     else:
         outputs = inputs + noise
@@ -56,21 +60,22 @@ def AddNoise(inputs, sigma):
 
 
 def get_fuv(hyper_para, model_type):
-    ## defining frequnetly used global variables
-    ## 定义常用的全局变量
+    """
+    定义常用的全局变量
+    """
     running_loss = 0.0
 
-    ## 实例标准化
+    # 实例标准化
     inm = nn.InstanceNorm1d(1, affine=False)
     relu = nn.ReLU()
 
-    ## 创建一个全0的D维数组
-    ## 创建一个D*D的对角矩阵
+    # 创建一个全0的D维数组
+    # 创建一个D*D的对角矩阵
     mean = 0.0 * np.ones((hyper_para.D,))
     cov = hyper_para.sigma * np.identity(hyper_para.D)
 
-    ##
-    if (model_type == 'vggface'):
+    #
+    if model_type == 'vggface':
         imagenet_mean = np.asarray([0.485, 0.456, 0.406])
         imagenet_std = np.asarray([0.229, 0.224, 0.225])
     else:
@@ -83,6 +88,10 @@ def get_fuv(hyper_para, model_type):
 
 
 def load_dataset(dataset, class_number, mean, std, hyper_para):
+    """
+    加载数据集
+    已重写
+    """
     if dataset == 'abnormal':
         # change path files according to path on your device
         normal_data_path = '/home/labuser/Desktop/research/datasets/anomaly/normal/mat/raw/anomaly_normal_data_' + str(
@@ -107,7 +116,7 @@ def load_dataset(dataset, class_number, mean, std, hyper_para):
         no_abnormal_data = np.shape(abnormal_data)[0]
         no_normal_data = np.shape(normal_data)[0]
 
-        ### split the data into train and test
+        # split the data into train and test
         rand_id = np.random.permutation(no_normal_data)
         normal_data = normal_data[rand_id, :, :, :]
         train_data = normal_data[no_abnormal_data:no_normal_data, :, :, :]
@@ -262,6 +271,10 @@ def load_dataset(dataset, class_number, mean, std, hyper_para):
 
 
 def choose_network(model_type, pre_trained_flag):
+    """
+    选取特征提取器
+    使用官方的实现，但是所有网络都去掉全链接层
+    """
     if model_type == 'alexnet':
         model = torchvision.models.alexnet(pretrained=pre_trained_flag)
         new_classifier = nn.Sequential(*list(model.classifier.children())[:-2])
@@ -318,7 +331,7 @@ def choose_classifier(dataset, class_number, model_type, model, classifier, D, h
     if hyper_para.verbose:
         print('Features extracted.')
 
-    ## test on the test set
+    # test on the test set
     test_features = np.memmap('../../temp_files/test_features_temp.bin', dtype='float32', mode='w+',
                               shape=(no_test_data, hyper_para.D))
     test_scores = np.memmap('../../temp_files/test_scores_temp.bin', dtype='float32', mode='w+',
@@ -422,7 +435,7 @@ def OC_CNN(dataset, model_type, class_number, hyper_para):
     no_train_data = np.shape(train_data.numpy())[0]
     no_test_data = np.shape(test_data.numpy())[0]
 
-    ### choose one network which produces D dimensional features
+    # choose one network which produces D dimensional features
     if hyper_para.verbose:
         print('Loading network ' + hyper_para.model_type + '...')
 
@@ -443,7 +456,7 @@ def OC_CNN(dataset, model_type, class_number, hyper_para):
     model.train()
     classifier.train()
 
-    ### optimizer for model training (for this work we restrict to only fine-tuning FC layers)
+    # optimizer for model training (for this work we restrict to only fine-tuning FC layers)
     if model_type == 'vggface':
         model_optimizer = optim.Adam(model[-5:].parameters(), lr=hyper_para.lr)
     else:
@@ -498,8 +511,8 @@ def OC_CNN(dataset, model_type, class_number, hyper_para):
         running_cc += cc.data
         running_loss += loss.data
 
-        if (hyper_para.verbose == True):
-            if (i % (hyper_para.stats_freq) == (hyper_para.stats_freq - 1)):  # print every stats_frequency batches
+        if hyper_para.verbose:
+            if i % hyper_para.stats_freq == (hyper_para.stats_freq - 1):  # print every stats_frequency batches
                 line = hyper_para.BLUE + '[' + str(format(i + 1, '8d')) + '/' + str(
                     format(int(hyper_para.iterations), '8d')) + ']' + hyper_para.ENDC + \
                        hyper_para.GREEN + ' loss: ' + hyper_para.ENDC + str(
@@ -515,7 +528,8 @@ def OC_CNN(dataset, model_type, class_number, hyper_para):
     relu.eval()
 
     area_under_curve, train_features, test_scores, test_features = choose_classifier(dataset, class_number, model_type,
-                                                                                     model, classifier, hyper_para.D, hyper_para,
+                                                                                     model, classifier, hyper_para.D,
+                                                                                     hyper_para,
                                                                                      train_data, test_data, test_label,
                                                                                      no_train_data, no_test_data, inm,
                                                                                      relu, imagenet_mean, imagenet_std)
@@ -542,7 +556,7 @@ def OC_CNN(dataset, model_type, class_number, hyper_para):
         {'auc': area_under_curve, 'train_features': train_features, 'test_scores': test_scores,
          'test_features': test_features, 'test_label': test_label})
 
-    if (hyper_para.verbose == True):
+    if hyper_para.verbose:
         print('model, classifier, features and results saved.')
 
     return area_under_curve
@@ -562,10 +576,10 @@ def OC_SVM_linear(dataset, model_type, class_number, hyper_para):
     no_train_data = np.shape(train_data.numpy())[0]
     no_test_data = np.shape(test_data.numpy())[0]
 
-    ### choose one network which produces D dimensional features
+    # choose one network which produces D dimensional features
     model = choose_network(model_type, hyper_para.pre_trained_flag)
 
-    ### training on gpu
+    # training on gpu
     if hyper_para.gpu_flag:
         relu.cuda()
         model.cuda()
@@ -599,7 +613,7 @@ def OC_SVM_linear(dataset, model_type, class_number, hyper_para):
     if hyper_para.verbose:
         print('One class SVM with Linear kernel trained.')
 
-    ## test on the test set
+    # test on the test set
     test_features = np.memmap('../../temp_files/test_features_temp.bin', dtype='float32', mode='w+',
                               shape=(no_test_data, hyper_para.D))
     test_scores = np.memmap('../../temp_files/test_scores_temp.bin', dtype='float32', mode='w+',
@@ -643,11 +657,11 @@ def Bi_SVM_linear(dataset, model_type, class_number, hyper_para):
     no_train_data = np.shape(train_data.numpy())[0]
     no_test_data = np.shape(test_data.numpy())[0]
 
-    ### choose one network which produces D dimensional features
+    # choose one network which produces D dimensional features
     model = choose_network(model_type, hyper_para.pre_trained_flag)
 
-    ### training on gpu
-    if (hyper_para.gpu_flag):
+    # training on gpu
+    if hyper_para.gpu_flag:
         relu.cuda()
         model.cuda()
 
@@ -670,7 +684,7 @@ def Bi_SVM_linear(dataset, model_type, class_number, hyper_para):
     train_temp = np.concatenate((train_features, gaussian_temp), axis=0)
     oc_svm_clf.fit(train_temp, labels)
 
-    ## test on the test set
+    # test on the test set
     test_features = np.memmap('../../temp_files/test_features_temp.bin', dtype='float32', mode='w+',
                               shape=(no_test_data, hyper_para.D))
     test_scores = np.memmap('../../temp_files/test_scores_temp.bin', dtype='float32', mode='w+',
@@ -691,7 +705,6 @@ def Bi_SVM_linear(dataset, model_type, class_number, hyper_para):
     train_features = train_features.numpy()
 
     fpr, tpr, thresholds = metrics.roc_curve(test_label, test_scores)
-
     area_under_curve = metrics.auc(fpr, tpr)
 
     joblib.dump(oc_svm_clf, '../../save_folder/saved_models/' + dataset + '/classifier/' + str(
@@ -704,3 +717,12 @@ def Bi_SVM_linear(dataset, model_type, class_number, hyper_para):
          'test_features': test_features, 'test_label': test_label})
 
     return area_under_curve
+
+
+if __name__ == '__main__':
+    model = torchvision.models.vgg19(pretrained=True)
+    new_classifier = nn.Sequential(*list(model.classifier.children())[:-3])
+    model.classifier = new_classifier
+    a = torch.randn((32, 3, 224, 224))
+    out = model(a)
+    print(out.shape)

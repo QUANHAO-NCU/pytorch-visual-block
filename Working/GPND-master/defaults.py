@@ -1,6 +1,5 @@
 from yacs.config import CfgNode as CN
 
-
 _C = CN()
 
 _C.OUTPUT_DIR = "results"
@@ -24,7 +23,6 @@ _C.MODEL.INPUT_IMAGE_CHANNELS = 1
 # If zd_merge true, will use zd discriminator that looks at entire batch.
 _C.MODEL.Z_DISCRIMINATOR_CROSS_BATCH = False
 
-
 _C.TRAIN = CN()
 
 _C.TRAIN.BATCH_SIZE = 256
@@ -39,6 +37,7 @@ _C.MAKE_PLOTS = True
 _C.OUTPUT_FOLDER = 'results'
 _C.RESULTS_NAME = 'results.csv'
 _C.LOSSES = 'classic'
+
 
 def get_cfg_defaults():
     """Get a yacs CfgNode object with default values for my_project."""

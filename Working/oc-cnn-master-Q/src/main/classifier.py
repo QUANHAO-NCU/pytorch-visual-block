@@ -1,15 +1,11 @@
 import torch.nn as nn
 
-relu = nn.ReLU()
-
 
 class classifier_nn(nn.Module):
 
-    def __init__(self, D):
+    def __init__(self, Dimension):
         super(classifier_nn, self).__init__()
-        self.fc1 = nn.Linear(D, 2)
+        self.fc1 = nn.Linear(Dimension, 2)
 
     def forward(self, x):
-        out = x
-        out = self.fc1(out)
-        return out
+        return self.fc1(x)

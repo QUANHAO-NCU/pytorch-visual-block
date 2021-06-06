@@ -19,9 +19,9 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 from light_cnn import *
 import numpy as np
-
-# from light_cnn import LightCNN_9Layers, LightCNN_29Layers, LightCNN_29Layers_v2
-# from load_imglist import ImageList
+from Config import *
+from light_cnn import LightCNN_9Layers, LightCNN_29Layers, LightCNN_29Layers_v2
+from oneClassDataset import OneClassDataset
 
 parser = argparse.ArgumentParser(description='PyTorch Light CNN Training')
 parser.add_argument('--arch', '-a', metavar='ARCH', default='LightCNN')
@@ -57,10 +57,12 @@ parser.add_argument('--save_path', default='', type=str, metavar='PATH',
 parser.add_argument('--num_classes', default=99891, type=int,
                     metavar='N', help='number of classes (default: 99891)')
 
+
 def main():
     global args
-    args = parser.parse_args()
-
+    # mainArgs = parser.parse_args()
+    args = trainArgs()
+    model = None
     # create Light CNN for face recognition
     if args.model == 'LightCNN-9':
         model = LightCNN_9Layers(num_classes=args.num_classes)
@@ -72,7 +74,7 @@ def main():
         print('Error model type\n')
 
     if args.cuda:
-        model = torch.nn.DataParallel(model).cuda()
+        model = model.cuda()
 
     print(model)
 
@@ -81,14 +83,14 @@ def main():
     for name, value in model.named_parameters():
         if 'bias' in name:
             if 'fc2' in name:
-                params += [{'params':value, 'lr': 20 * args.lr, 'weight_decay': 0}]
+                params += [{'params': value, 'lr': 20 * args.lr, 'weight_decay': 0}]
             else:
-                params += [{'params':value, 'lr': 2 * args.lr, 'weight_decay': 0}]
+                params += [{'params': value, 'lr': 2 * args.lr, 'weight_decay': 0}]
         else:
             if 'fc2' in name:
-                params += [{'params':value, 'lr': 10 * args.lr}]
+                params += [{'params': value, 'lr': 10 * args.lr}]
             else:
-                params += [{'params':value, 'lr': 1 * args.lr}]
+                params += [{'params': value, 'lr': 1 * args.lr}]
 
     optimizer = torch.optim.SGD(params, args.lr,
                                 momentum=args.momentum,
@@ -108,25 +110,25 @@ def main():
 
     cudnn.benchmark = True
 
-    #load image
+    # load image
     train_loader = torch.utils.data.DataLoader(
-        ImageList(root=args.root_path, fileList=args.train_list, 
-            transform=transforms.Compose([ 
-                transforms.RandomCrop(128),
-                transforms.RandomHorizontalFlip(), 
-                transforms.ToTensor(),
-            ])),
+        OneClassDataset(path=args.train_list, positiveClass='Car', mode='train',
+                        transform=transforms.Compose([
+                            transforms.RandomCrop(128),
+                            transforms.RandomHorizontalFlip(),
+                            transforms.ToTensor(),
+                        ])),
         batch_size=args.batch_size, shuffle=True,
         num_workers=args.workers, pin_memory=True)
 
     val_loader = torch.utils.data.DataLoader(
-        ImageList(root=args.root_path, fileList=args.val_list, 
-            transform=transforms.Compose([ 
-                transforms.CenterCrop(128),
-                transforms.ToTensor(),
-            ])),
+        OneClassDataset(path=args.val_list, positiveClass='Car', mode='val',
+                        transform=transforms.Compose([
+                            transforms.CenterCrop(128),
+                            transforms.ToTensor(),
+                        ])),
         batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)   
+        num_workers=args.workers, pin_memory=True)
 
     # define loss function and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -134,10 +136,9 @@ def main():
     if args.cuda:
         criterion.cuda()
 
-    validate(val_loader, model, criterion)    
+    validate(val_loader, model, criterion)
 
     for epoch in range(args.start_epoch, args.epochs):
-
         adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
@@ -146,7 +147,7 @@ def main():
         # evaluate on validation set
         prec1 = validate(val_loader, model, criterion)
 
-        save_name = args.save_path + 'lightCNN_' + str(epoch+1) + '_checkpoint.pth.tar'
+        save_name = args.save_path + 'lightCNN_' + str(epoch + 1) + '_checkpoint.pth.tar'
         save_checkpoint({
             'epoch': epoch + 1,
             'arch': args.arch,
@@ -157,10 +158,10 @@ def main():
 
 def train(train_loader, model, criterion, optimizer, epoch):
     batch_time = AverageMeter()
-    data_time  = AverageMeter()
-    losses     = AverageMeter()
-    top1       = AverageMeter()
-    top5       = AverageMeter()
+    data_time = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
 
     model.train()
 
@@ -168,17 +169,17 @@ def train(train_loader, model, criterion, optimizer, epoch):
     for i, (input, target) in enumerate(train_loader):
         data_time.update(time.time() - end)
 
-        input      = input.cuda()
-        target     = target.cuda()
-        input_var  = torch.autograd.Variable(input)
+        input = input.cuda()
+        target = target.cuda()
+        input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
         # compute output
         output, _ = model(input_var)
-        loss   = criterion(output, target_var)
+        loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
+        prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
         losses.update(loss.data[0], input.size(0))
         top1.update(prec1[0], input.size(0))
         top5.update(prec5[0], input.size(0))
@@ -199,39 +200,40 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                   epoch, i, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses, top1=top1, top5=top5))
+                epoch, i, len(train_loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1, top5=top5))
+
 
 def validate(val_loader, model, criterion):
     batch_time = AverageMeter()
-    losses     = AverageMeter()
-    top1       = AverageMeter()
-    top5       = AverageMeter()
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
 
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
-        input      = input.cuda()
-        target     = target.cuda()
-        input_var  = torch.autograd.Variable(input, volatile=True)
+        input = input.cuda()
+        target = target.cuda()
+        input_var = torch.autograd.Variable(input, volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
 
         # compute output
         output, _ = model(input_var)
-        loss   = criterion(output, target_var)
+        loss = criterion(output, target_var)
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(output.data, target, topk=(1,5))
+        prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
         losses.update(loss.data[0], input.size(0))
         top1.update(prec1[0], input.size(0))
         top5.update(prec5[0], input.size(0))
 
-
     print('\nTest set: Average loss: {}, Accuracy: ({})\n'.format(losses.avg, top1.avg))
 
     return top1.avg
+
 
 def save_checkpoint(state, filename):
     torch.save(state, filename)
@@ -239,25 +241,26 @@ def save_checkpoint(state, filename):
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
     def reset(self):
-        self.val   = 0
-        self.avg   = 0
-        self.sum   = 0
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
         self.count = 0
 
     def update(self, val, n=1):
-        self.val   = val
-        self.sum   += val * n
+        self.val = val
+        self.sum += val * n
         self.count += n
-        self.avg   = self.sum / self.count
+        self.avg = self.sum / self.count
 
 
 def adjust_learning_rate(optimizer, epoch):
     scale = 0.457305051927326
-    step  = 10
+    step = 10
     lr = args.lr * (scale ** (epoch // step))
     print('lr: {}'.format(lr))
     if (epoch != 0) & (epoch % step == 0):
@@ -272,7 +275,7 @@ def accuracy(output, target, topk=(1,)):
     batch_size = target.size(0)
 
     _, pred = output.topk(maxk, 1, True, True)
-    pred    = pred.t()
+    pred = pred.t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 
     res = []
@@ -280,6 +283,7 @@ def accuracy(output, target, topk=(1,)):
         correct_k = correct[:k].view(-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
+
 
 if __name__ == '__main__':
     main()
