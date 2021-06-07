@@ -3,22 +3,22 @@ from torch import nn
 
 
 class ResBlock(nn.Module):
-    def __init__(self, inplanes, outplanes, stride=1):
+    def __init__(self, in_channel, out_channel, stride=1):
         super(ResBlock, self).__init__()
 
-        self.conv1 = nn.Conv2d(inplanes, outplanes, kernel_size=3, stride=stride, padding=1)
-        self.bn1 = nn.BatchNorm2d(outplanes)
+        self.conv1 = nn.Conv2d(in_channel, out_channel, kernel_size=3, stride=stride, padding=1)
+        self.bn1 = nn.BatchNorm2d(out_channel)
 
-        self.conv2 = nn.Conv2d(outplanes, outplanes, kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(outplanes)
+        self.conv2 = nn.Conv2d(out_channel, out_channel, kernel_size=3, stride=1, padding=1)
+        self.bn2 = nn.BatchNorm2d(out_channel)
 
         self.relu = nn.ReLU()
 
         self.extra = nn.Sequential()
-        if outplanes != inplanes:
+        if out_channel != in_channel:
             self.extra = nn.Sequential(
-                nn.Conv2d(inplanes, outplanes, kernel_size=1, stride=stride),
-                nn.BatchNorm2d(outplanes)
+                nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=stride),
+                nn.BatchNorm2d(out_channel)
             )
 
     def forward(self, x):
@@ -31,7 +31,7 @@ class ResBlock(nn.Module):
         out = self.relu(out)
         identity = self.extra(identity)
         out = out + identity
-        # out = self.relu(out)
+        out = self.relu(out)
         return out
 
 
