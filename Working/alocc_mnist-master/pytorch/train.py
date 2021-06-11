@@ -64,7 +64,7 @@ def main(args):
                              betas=(setting["optimizer"]["beta1"], setting["optimizer"]["beta2"]),
                              weight_decay=setting["regularization"]["weight_decay"])
 
-    trainer = Engine(GANTrainer(generator, discriminator, opt_g, opt_d, **setting["updater"]))
+    trainer = Engine(GANTrainer(generator, discriminator, opt_g, opt_d,device=device, **setting["updater"]))
 
     # テスト用
     test_neg = get_mnist_num(set(setting["label"]["neg"]), train=False)
@@ -81,15 +81,15 @@ def main(args):
     img_saver = save_img(generator, test_pos, test_neg, result_dir_path / "images",
                          setting["updater"]["noise_std"], device)
 
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), evaluator)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), plotter)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), printer)
-    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=1000), img_saver)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=100), evaluator)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=100), plotter)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=100), printer)
+    trainer.add_event_handler(Events.ITERATION_COMPLETED(every=100), img_saver)
 
     # 指定されたiterationで終了
     trainer.add_event_handler(Events.ITERATION_COMPLETED(once=setting["iteration"]),
                               lambda engine: engine.terminate())
-    trainer.run(neg_loader, max_epochs=10**10)
+    trainer.run(neg_loader, max_epochs=10 ** 10)
 
 
 def get_mnist_num(dig_set: set, train=True):
@@ -102,7 +102,7 @@ def get_mnist_num(dig_set: set, train=True):
 
 class GANTrainer:
     def __init__(self, gen: nn.Module, dis: nn.Module,
-                 opt_gen, opt_dis, l2_lam: float, noise_std: float, n_dis: int = 1, device="cpu"):
+                 opt_gen, opt_dis, l2_lam: float, noise_std: float, n_dis: int = 1, device=None):
         self.gen = gen
         self.dis = dis
         self.opt_gen = opt_gen
@@ -122,6 +122,8 @@ class GANTrainer:
 
     def __call__(self, engine, batch):
         x, x_noisy = self.prepare_batch(batch)
+        x = x.to(self.device)
+        x_noisy = x_noisy.to(self.device)
         batch_size = len(x) // (self.n_dis + 1)
 
         self.gen.train()

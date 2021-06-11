@@ -1,5 +1,5 @@
 {
-    "iteration": 100000,
+    "iteration": 10000,
     "iterator": {
         "batch_size": 128
     },

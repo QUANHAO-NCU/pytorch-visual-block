@@ -52,6 +52,10 @@ class MyCIFAR10(CIFAR10):
 
     def __init__(self, *args, **kwargs):
         super(MyCIFAR10, self).__init__(*args, **kwargs)
+        self.train_labels = self.targets
+        self.train_data = self.data
+        self.test_data = self.data
+        self.test_labels = self.targets
 
     def __getitem__(self, index):
         """Override the original method of the CIFAR10 class.
