@@ -10,3 +10,7 @@ cifar
 *.csv
 *.7z
 *.rar
+MNIST
+cifar-10-batches-py
+*.png
+*.jpg

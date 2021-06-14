@@ -1,39 +1,23 @@
-from torchvision import transforms
-from torch.utils.data import Dataset
 from torchvision.datasets import MNIST, CIFAR10
-import csv
-import glob
-import os
-import random
-import copy
-import torch
-from PIL import Image
-import numpy as np
-from matplotlib import pyplot as plt
-from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
+from Tools import *
 
 
 class myDataset(Dataset):
     def __init__(self, dataset='MNIST', datasetPath='.'):
         super(myDataset, self).__init__()
-        self.dataset = dataset
+        self.dataset_train_val = None
+        self.dataset_test = None
         self.datasetPath = datasetPath
         self.label_image_train = {}
         self.label_image_val = {}
         self.label_image_test = {}
         self.label2text = {}
-        self.transform = False
-        self.addGaussianNoise = False
-        # 若要添加高斯噪声，指定均值和方差
-        self.mean = None
-        self.std = None
         for i in range(10):
             self.label_image_train[i] = []
             self.label_image_val[i] = []
             self.label_image_test[i] = []
-            self.label2text[i] = ''
         self.images = []
         self.labels = []
         self.datasetMode = 'train'
@@ -41,38 +25,31 @@ class myDataset(Dataset):
         self.negative_positive_proportion = 1
         if dataset == 'MNIST':
             self.initMNIST(datasetPath)
-            self.size = 28
         elif dataset == 'CIFAR10':
             self.initCIFAR10(datasetPath)
-            self.size = 32
-        self.tf = transforms.Compose([
-            lambda x: x.convert('RGB'),  # 扩展为RGB通道
-            transforms.Resize((int(self.size * 1.2), int(self.size * 1.2))),  # 后期会进行中心裁剪，所以图片先resize到1.25倍
-            transforms.RandomRotation(15),  # 数据增强部分，随机旋转
-            transforms.CenterCrop(self.size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225]),
-
-        ])
 
     def __getitem__(self, item):
-        image = self.images[item]
+        if self.datasetMode == 'train' or self.datasetMode == 'val':
+            image, _ = self.dataset_train_val[self.images[item]]
+        elif self.datasetMode == 'test':
+            image, _ = self.dataset_test[self.images[item]]
         label = self.labels[item]
-        if self.transform:
-            image = self.tf(image)
-        if self.addGaussianNoise:
-            image = self.addGaussian(image, self.mean, self.std)
-        return image, label
+        self.default_tf = transforms.Compose([
+            lambda x: x.convert('RGB'),  # 扩展为RGB通道
+            transforms.ToTensor(),  # 转换为tensor数据
+        ])
+        # 基础变换，转换为RGB通道，转换为tensor类型
+        sourceImage = self.default_tf(image)
+        return sourceImage, label
 
     def __len__(self):
         assert len(self.images) == len(self.labels)
         return len(self.images)
 
-    def setMode(self, mode, positive_class=0, negative_positive_proportion=1, transform=False, addGaussianNoise=False,
-                mean=0, std=0.01):
+    def setMode(self, mode, positive_class=0, np_proportion=1):
         """
-        negative_positive_proportion :负类：正类比例：x:1,x--> [1,9]
+        negative_positive_proportion :负类：正类比例：1:x --> 1:1~1:9
+        mode : train val test
         """
         self.images = []
         self.labels = []
@@ -82,80 +59,46 @@ class myDataset(Dataset):
             print('选取的正类不存在')
             exit(-1)
         if self.datasetMode == 'train':
-            self.images = self.label_image_train[positive_class]
-            self.labels = [1 for _ in self.images]
+            self.images += self.label_image_train[positive_class]
+            self.labels += [1 for _ in self.images]
         elif self.datasetMode == 'val':
-            tmp = []
-            for label in self.label_image_val:
-                images = self.label_image_val[label]
-                if label != positive_class:
-                    mark_label = 0
+            for class_id in self.label_image_val:
+                images = self.label_image_val[class_id]
+                self.images += [image for image in images]
+                if class_id == positive_class:
+                    self.labels += [1 for _ in images]
                 else:
-                    mark_label = 1
-                for image in images:
-                    tmp.append([image, mark_label])
-            random.shuffle(tmp)
-            self.images = [item[0] for item in tmp]
-            self.labels = [item[1] for item in tmp]
+                    self.labels += [0 for _ in images]
         elif self.datasetMode == 'test':
-            if negative_positive_proportion > len(self.label_image_test) - 1:
+            if np_proportion > len(self.label_image_test) - 1:
                 print('没有这么多负样本')
                 exit(-1)
-            tmp = []
-            positive_images = self.label_image_test[positive_class]
-            for image in positive_images:
-                tmp.append([image, 1])
-            negative_labels = []
-            while negative_positive_proportion > 0:
+            labels = [positive_class]
+            while np_proportion > 0:
                 choose = random.sample(list(self.label_image_test), 1)
-                if choose[0] != positive_class and choose[0] not in negative_labels:
-                    negative_labels.append(choose[0])
-                    negative_positive_proportion -= 1
-            for negative_label in negative_labels:
-                images = self.label_image_test[negative_label]
-                for image in images:
-                    tmp.append([image, 0])
-            random.shuffle(tmp)
-            self.images = [item[0] for item in tmp]
-            self.labels = [item[1] for item in tmp]
+                if choose[0] != positive_class and choose[0] not in labels:
+                    labels.append(choose[0])
+                    np_proportion -= 1
+            for label in labels:
+                images = self.label_image_test[label]
+                self.images += [image for image in images]
+                if label != positive_class:
+                    self.labels += [0 for _ in images]
+                else:
+                    self.labels += [1 for _ in images]
         elif self.datasetMode == 'normal':
             for label in self.label_image_train:
                 images = self.label_image_train[label]
-                for image in images:
-                    self.images.append(image)
-                    self.labels.append(label)
+                self.images += [image for image in images]
+                self.labels += [label for _ in images]
             for label in self.label_image_val:
                 images = self.label_image_val[label]
-                for image in images:
-                    self.images.append(image)
-                    self.labels.append(label)
+                self.images += [image for image in images]
+                self.labels += [label for _ in images]
             for label in self.label_image_test:
                 images = self.label_image_test[label]
-                for image in images:
-                    self.images.append(image)
-                    self.labels.append(label)
-        self.transform = transform
-        self.addGaussianNoise = addGaussianNoise
-        self.mean = mean
-        self.std = std
-        if self.addGaussianNoise:
-            assert self.mean is not None and self.std is not None
-
-    def addGaussian(self, image, mean, std):
-        img = np.asarray(image)
-        noise = np.random.normal(mean, std, img.shape)
-        noise = torch.from_numpy(noise)
-        image += noise
-        return image
-
-    def denormalize(self, image):
-        assert torch.is_tensor(image)
-        mean = [0.485, 0.456, 0.406]
-        std = [0.229, 0.224, 0.225]
-        mean = torch.tensor(mean).unsqueeze(1).unsqueeze(1)
-        std = torch.tensor(std).unsqueeze(1).unsqueeze(1)
-        x = image * std + mean
-        return x
+                self.images += [image for image in images]
+                self.labels += [label for _ in images]
 
     def initMNIST(self, datasetPath, train_val_proportion=0.9):
         mnist_train = MNIST(root=datasetPath, train=True, download=True)
@@ -163,13 +106,16 @@ class myDataset(Dataset):
         train_total_num = mnist_train.__len__()
         train_num = int(train_total_num * train_val_proportion)
         for index in range(train_num):
-            image, label = mnist_train[index]
-            self.label_image_train[label].append(image)
+            _, label = mnist_train[index]
+            self.label_image_train[label].append(index)
         for index in range(train_num, train_total_num):
-            image, label = mnist_train[index]
-            self.label_image_val[label].append(image)
-        for image, label in mnist_test:
-            self.label_image_test[label].append(image)
+            _, label = mnist_train[index]
+            self.label_image_val[label].append(index)
+        for index in range(len(mnist_test)):
+            _, label = mnist_test[index]
+            self.label_image_test[label].append(index)
+        self.dataset_train_val = mnist_train
+        self.dataset_test = mnist_test
 
     def initCIFAR10(self, datasetPath, train_val_proportion=0.9):
         cifar10_train = CIFAR10(root=datasetPath, train=True, download=True)
@@ -177,37 +123,26 @@ class myDataset(Dataset):
         train_total_num = cifar10_train.__len__()
         train_num = int(train_total_num * train_val_proportion)
         for index in range(train_num):
-            image, label = cifar10_train[index]
-            self.label_image_train[label].append(image)
+            _, label = cifar10_train[index]
+            self.label_image_train[label].append(index)
         for index in range(train_num, train_total_num):
-            image, label = cifar10_train[index]
-            self.label_image_val[label].append(image)
-        for image, label in cifar10_test:
-            self.label_image_test[label].append(image)
+            _, label = cifar10_train[index]
+            self.label_image_val[label].append(index)
+        for index in range(len(cifar10_test)):
+            image, label = cifar10_test[index]
+            self.label_image_test[label].append(index)
+        self.dataset_train_val = cifar10_train
+        self.dataset_test = cifar10_test
 
 
 if __name__ == '__main__':
-    dataset = myDataset('MNIST', '.')
-    # dataset.setMode('train', 3)
-    # train_dataset = copy.deepcopy(dataset)
-    # train_loader = DataLoader(train_dataset)
-    # print(train_loader.__len__())
-    # dataset.setMode('test', 3, negative_positive_proportion=7)
-    # test_dataset = copy.deepcopy(dataset)
-    # test_loader = DataLoader(test_dataset)
-    # print('test loader:', test_loader.__len__())
-    # print('train loader:', train_loader.__len__())
-    dataset.setMode('normal', transform=True, addGaussianNoise=True, mean=0, std=1)
-    image, label = dataset.__getitem__(28891)
-    assert torch.is_tensor(image)
-    image = dataset.denormalize(image.clone().detach())
-    image = np.transpose(image, (1, 2, 0))
-    plt.imshow(image)
-    plt.show()
-    dataset.setMode('normal', transform=True, addGaussianNoise=False, mean=0, std=0.1)
-    image, label = dataset.__getitem__(28891)
-    assert torch.is_tensor(image)
-    image = dataset.denormalize(image.clone().detach())
-    image = np.transpose(image, (1, 2, 0))
-    plt.imshow(image)
-    plt.show()
+    dataset = myDataset('CIFAR10', '.')
+    dataset.setMode('normal')
+    dataloader = DataLoader(dataset, batch_size=256, shuffle=True, num_workers=4)
+    dataset.setMode('val', positive_class=0)
+    for image, labels in dataloader:
+        print(labels)
+    dataset.setMode('test', positive_class=0, np_proportion=2)
+    for image, labels in dataloader:
+        print(labels)
+    pass

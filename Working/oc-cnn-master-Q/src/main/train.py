@@ -163,7 +163,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     top1 = AverageMeter()
     top5 = AverageMeter()
 
-    model.train()
+    model.train_test(,
 
     end = time.time()
     for i, (input, target) in enumerate(train_loader):

@@ -64,7 +64,7 @@ def main(args):
                              betas=(setting["optimizer"]["beta1"], setting["optimizer"]["beta2"]),
                              weight_decay=setting["regularization"]["weight_decay"])
 
-    trainer = Engine(GANTrainer(generator, discriminator, opt_g, opt_d,device=device, **setting["updater"]))
+    trainer = Engine(GANTrainer(generator, discriminator, opt_g, opt_d, device=device, **setting["updater"]))
 
     # テスト用
     test_neg = get_mnist_num(set(setting["label"]["neg"]), train=False)

@@ -9,20 +9,20 @@ class AE(nn.Module):
 
         # [b, 784] => [b, 20]
         self.encoder = nn.Sequential(
-            nn.Linear(784, 256),
+            nn.Linear(784, 512),
             nn.ReLU(),
-            nn.Linear(256, 64),
+            nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Linear(64, 20),
+            nn.Linear(256, 128),
             nn.ReLU()
         )
         # [b, 20] => [b, 784]
         self.decoder = nn.Sequential(
-            nn.Linear(20, 64),
+            nn.Linear(128, 256),
             nn.ReLU(),
-            nn.Linear(64, 256),
+            nn.Linear(256, 512),
             nn.ReLU(),
-            nn.Linear(256, 784),
+            nn.Linear(512, 784),
             nn.Sigmoid()
         )
 

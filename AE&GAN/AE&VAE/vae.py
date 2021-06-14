@@ -11,7 +11,7 @@ class VAE(nn.Module):
         # u: [b, 10]
         # sigma: [b, 10]
         self.encoder = nn.Sequential(
-            nn.Linear(784, 256),
+            nn.Linear(3*32*32, 256),
             nn.ReLU(),
             nn.Linear(256, 64),
             nn.ReLU(),
@@ -24,7 +24,7 @@ class VAE(nn.Module):
             nn.ReLU(),
             nn.Linear(64, 256),
             nn.ReLU(),
-            nn.Linear(256, 784),
+            nn.Linear(256, 3*32*32),
             nn.Sigmoid()
         )
 
@@ -38,7 +38,7 @@ class VAE(nn.Module):
         """
         batchsz = x.size(0)
         # flatten
-        x = x.view(batchsz, 784)
+        x = x.view(batchsz, 3*32*32)
         # encoder
         # [b, 20], including mean and sigma
         h_ = self.encoder(x)
@@ -51,12 +51,11 @@ class VAE(nn.Module):
         # decoder
         x_hat = self.decoder(h)
         # reshape
-        x_hat = x_hat.view(batchsz, 1, 28, 28)
-
+        x_hat = x_hat.view(batchsz, 3, 32, 32)
         kld = 0.5 * torch.sum(
             torch.pow(mu, 2) +
             torch.pow(sigma, 2) -
             torch.log(1e-8 + torch.pow(sigma, 2)) - 1
-        ) / (batchsz * 28 * 28)
+        ) / (batchsz * 32 * 32)
 
         return x_hat, kld
